@@ -111,18 +111,15 @@ PHP_METHOD(Kafka, set_topic)
 PHP_METHOD(Kafka, produce)
 {
     zval *object = getThis();
-    char *topic;
     char *msg;
-    int topic_len;
     int msg_len;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss",
-            &topic, &topic_len,
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
             &msg, &msg_len) == FAILURE) {
         return;
     }
 
-    kafka_produce(topic, msg, msg_len);
+    kafka_produce(msg, msg_len);
 
     RETURN_TRUE;
 }
@@ -130,21 +127,18 @@ PHP_METHOD(Kafka, produce)
 PHP_METHOD(Kafka, consume)
 {
     zval *object = getThis();
-    char *topic;
-    int topic_len;
     char *offset;
     int offset_len;
     long item_count = 0;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|sl",
-            &topic, &topic_len,
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|sl",
             &offset, &offset_len,
             &item_count) == FAILURE) {
         return;
     }
 
     array_init(return_value);
-    kafka_consume(return_value, topic, offset, item_count);
+    kafka_consume(return_value, offset, item_count);
 
     if(return_value == NULL) {
         RETURN_FALSE;
