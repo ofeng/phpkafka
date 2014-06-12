@@ -181,26 +181,26 @@ void kafka_produce(char* msg, int msg_len)
     signal(SIGTERM, kafka_stop);
     signal(SIGPIPE, kafka_stop);
 
-    rd_kafka_resp_err_t err;
+      rd_kafka_resp_err_t err;
 
-    if (rd_kafka_produce(conf.rkt, conf.partition,
-                     RD_KAFKA_MSG_F_COPY,
-                     msg, msg_len, NULL, 0, NULL) == -1) {
-      //break;
-    }
+      if (rd_kafka_produce(conf.rkt, conf.partition,
+                       RD_KAFKA_MSG_F_COPY,
+                       msg, msg_len, NULL, 0, NULL) == -1) {
+        rd_kafka_poll(conf.rk, 0);
+      }
 
-    err = rd_kafka_errno2err(errno);
+      err = rd_kafka_errno2err(errno);
 
-    if (err != RD_KAFKA_RESP_ERR__QUEUE_FULL) {
-        openlog("phpkafka", 0, LOG_USER);
-        syslog(LOG_INFO, "phpkafka - Failed to produce message (%zd bytes): %s",
-          msg_len, rd_kafka_err2str(err));
-    }
+      if (err != RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+          openlog("phpkafka", 0, LOG_USER);
+          syslog(LOG_INFO, "phpkafka - Failed to produce message (%zd bytes): %s",
+            msg_len, rd_kafka_err2str(err));
+      }
 
-    /* Internal queue full, sleep to allow
-     * messages to be produced/time out
-     * before trying again. */
-    rd_kafka_poll(conf.rk, 5);
+      /* Internal queue full, sleep to allow
+       * messages to be produced/time out
+       * before trying again. */
+      //rd_kafka_poll(conf.rk, 5);
 
     /* Poll to handle delivery reports */
     rd_kafka_poll(conf.rk, 0);
