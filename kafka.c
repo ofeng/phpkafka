@@ -106,6 +106,9 @@ void kafka_msg_delivered (rd_kafka_t *rk,
 void kafka_destroy()
 {
     if(conf.rk != NULL) {
+        /* Wait for all messages to be transmitted */
+        while (conf.run && rd_kafka_outq_len(conf.rk) > 0)
+          rd_kafka_poll(conf.rk, 50);
         rd_kafka_destroy(conf.rk);
         rd_kafka_wait_destroyed(1000);
         conf.rk = NULL;
@@ -184,13 +187,6 @@ void kafka_produce(char* msg, size_t msg_len)
 
     /* Poll to handle delivery reports */
     rd_kafka_poll(conf.rk, 0);
-
-    /* Wait for all messages to be transmitted */
-    while (conf.run && rd_kafka_outq_len(conf.rk) > 0)
-      rd_kafka_poll(conf.rk, 50);
-
-    // rd_kafka_topic_destroy(conf.rkt);
-    // rd_kafka_destroy(conf.rk);
 }
 
 static rd_kafka_message_t *msg_consume(rd_kafka_message_t *rkmessage, void *opaque) {
