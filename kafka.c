@@ -194,7 +194,7 @@ void kafka_produce(char* msg, int msg_len)
     rd_kafka_poll(conf.rk, 0);
 
     /* Wait for all messages to be transmitted */
-    while (conf.run && rd_kafka_outq_len(conf.rk))
+    while (conf.run && rd_kafka_outq_len(conf.rk) > 0)
       rd_kafka_poll(conf.rk, 100);
 
     //rd_kafka_topic_destroy(conf.rkt);
