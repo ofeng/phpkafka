@@ -189,7 +189,6 @@ void kafka_produce(char* msg, size_t msg_len)
     while (conf.run && rd_kafka_outq_len(conf.rk) > 0)
       rd_kafka_poll(conf.rk, 50);
 
-      return;
     // rd_kafka_topic_destroy(conf.rkt);
     // rd_kafka_destroy(conf.rk);
 }
