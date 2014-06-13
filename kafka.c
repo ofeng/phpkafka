@@ -64,7 +64,7 @@ static struct conf {
 
 void kafka_connect(char *brokers)
 {
-    kafka_setup(brokers);
+    conf.brokers = brokers;
 }
 
 void kafka_set_partition(int partition)
@@ -80,7 +80,6 @@ void kafka_set_topic(char *topic)
 
 void kafka_stop(int sig) {
     conf.run = 0;
-    fclose(stdin); /* abort fgets() */
     rd_kafka_destroy(conf.rk);
     conf.rk = NULL;
 }
@@ -102,11 +101,6 @@ void kafka_msg_delivered (rd_kafka_t *rk,
         syslog(LOG_INFO, "phpkafka - Message delivery failed: %s",
                 rd_kafka_err2str(error_code));
     }
-}
-
-void kafka_setup(char* brokers)
-{
-    conf.brokers = brokers;
 }
 
 void kafka_destroy()
@@ -142,8 +136,8 @@ void producer_setup()
     /* Set up a message delivery report callback.
      * It will be called once for each message, either on successful
      * delivery to broker, or upon failure to deliver to broker. */
-    rd_kafka_conf_set_dr_cb(conf.rk_conf, kafka_msg_delivered);
-    rd_kafka_conf_set_error_cb(conf.rk_conf, kafka_err_cb);
+    //rd_kafka_conf_set_dr_cb(conf.rk_conf, kafka_msg_delivered);
+    //rd_kafka_conf_set_error_cb(conf.rk_conf, kafka_err_cb);
 
     // openlog("phpkafka", 0, LOG_USER);
     // syslog(LOG_INFO, "phpkafka - using: %s", brokers);
@@ -164,7 +158,7 @@ void producer_setup()
     conf.rkt_conf = NULL;
 }
 
-void kafka_produce(char* msg, int msg_len)
+void kafka_produce(char* msg, size_t msg_len)
 {
     static int initialized = 0;
     if (!initialized){
@@ -173,11 +167,9 @@ void kafka_produce(char* msg, int msg_len)
       initialized = 1;
     }
 
-    signal(SIGINT, kafka_stop);
-    signal(SIGTERM, kafka_stop);
-    signal(SIGPIPE, kafka_stop);
-
-      rd_kafka_resp_err_t err;
+    // signal(SIGINT, kafka_stop);
+    // signal(SIGTERM, kafka_stop);
+    // signal(SIGPIPE, kafka_stop);
 
       if (rd_kafka_produce(conf.rkt, conf.partition,
                        RD_KAFKA_MSG_F_COPY,
@@ -195,10 +187,11 @@ void kafka_produce(char* msg, int msg_len)
 
     /* Wait for all messages to be transmitted */
     while (conf.run && rd_kafka_outq_len(conf.rk) > 0)
-      rd_kafka_poll(conf.rk, 100);
+      rd_kafka_poll(conf.rk, 50);
 
-    //rd_kafka_topic_destroy(conf.rkt);
-    //rd_kafka_destroy(conf.rk);
+      return;
+    // rd_kafka_topic_destroy(conf.rkt);
+    // rd_kafka_destroy(conf.rk);
 }
 
 static rd_kafka_message_t *msg_consume(rd_kafka_message_t *rkmessage, void *opaque) {
