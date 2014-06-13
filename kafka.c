@@ -30,12 +30,7 @@
 #include "kafka.h"
 #include "librdkafka/rdkafka.h"
 
-static int run = 1;
-//static rd_kafka_t *rk;
-static int exit_eof = 1; //Exit consumer when last message
-//char *brokers = "localhost:9092";
 int64_t start_offset = 0;
-//int partition = RD_KAFKA_PARTITION_UA;
 
 static struct conf {
         int     run;
@@ -84,7 +79,7 @@ void kafka_set_topic(char *topic)
 }
 
 void kafka_stop(int sig) {
-    run = 0;
+    conf.run = 0;
     fclose(stdin); /* abort fgets() */
     rd_kafka_destroy(conf.rk);
     conf.rk = NULL;
@@ -174,6 +169,7 @@ void kafka_produce(char* msg, int msg_len)
     static int initialized = 0;
     if (!initialized){
       producer_setup();
+      php_printf("%s\n", "*** CREATED NEW PRODUCER! ***");
       initialized = 1;
     }
 
@@ -186,28 +182,20 @@ void kafka_produce(char* msg, int msg_len)
       if (rd_kafka_produce(conf.rkt, conf.partition,
                        RD_KAFKA_MSG_F_COPY,
                        msg, msg_len, NULL, 0, NULL) == -1) {
+          openlog("phpkafka", 0, LOG_USER);
+          syslog(LOG_INFO, "phpkafka - %% Failed to produce to topic %s "
+          "partition %i: %s",
+          rd_kafka_topic_name(conf.rkt), conf.partition,
+          rd_kafka_err2str(rd_kafka_errno2err(errno)));
         rd_kafka_poll(conf.rk, 0);
       }
-
-      err = rd_kafka_errno2err(errno);
-
-      if (err != RD_KAFKA_RESP_ERR__QUEUE_FULL) {
-          openlog("phpkafka", 0, LOG_USER);
-          syslog(LOG_INFO, "phpkafka - Failed to produce message (%zd bytes): %s",
-            msg_len, rd_kafka_err2str(err));
-      }
-
-      /* Internal queue full, sleep to allow
-       * messages to be produced/time out
-       * before trying again. */
-      //rd_kafka_poll(conf.rk, 5);
 
     /* Poll to handle delivery reports */
     rd_kafka_poll(conf.rk, 0);
 
     /* Wait for all messages to be transmitted */
-    while (run && rd_kafka_outq_len(conf.rk))
-      rd_kafka_poll(conf.rk, 50);
+    while (conf.run && rd_kafka_outq_len(conf.rk))
+      rd_kafka_poll(conf.rk, 100);
 
     //rd_kafka_topic_destroy(conf.rkt);
     //rd_kafka_destroy(conf.rk);
@@ -222,8 +210,8 @@ static rd_kafka_message_t *msg_consume(rd_kafka_message_t *rkmessage, void *opaq
              "message queue at offset %"PRId64"\n",
              rd_kafka_topic_name(rkmessage->rkt),
              rkmessage->partition, rkmessage->offset);
-      if (exit_eof)
-        run = 0;
+      if (conf.exit_eof)
+        conf.run = 0;
       return;
     }
 
@@ -291,13 +279,13 @@ void kafka_consume(zval* return_value, char* offset, int item_count)
       read_counter = item_count;
     }
 
-    while (run) {
+    while (conf.run) {
       if (item_count != 0 && read_counter >= 0) {
         read_counter--;
         openlog("phpkafka", 0, LOG_USER);
         syslog(LOG_INFO, "phpkafka - read_counter: %d", read_counter);
         if (read_counter == -1) {
-          run = 0;
+          conf.run = 0;
           continue;
         }
       }
