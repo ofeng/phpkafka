@@ -60,7 +60,7 @@ static struct conf {
         .partition = RD_KAFKA_PARTITION_UA,
         .msg_size = 1024*1024,
         .delim = '\n',
-        .exit_eof = 0,
+        .exit_eof = 1,
 };
 
 void kafka_connect(char *brokers)
