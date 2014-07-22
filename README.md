@@ -14,7 +14,7 @@ Installing PHP extension:
 ----------
 ```bash
 phpize
-./configure --enable-kafka
+./configure --enable-kafka --with-php-config=/path/to/php-config
 make
 sudo make install
 sudo sh -c 'echo "extension=kafka.so" >> /etc/php5/conf.d/kafka.ini'
@@ -27,6 +27,14 @@ Examples:
 ```php
 // Produce a message
 $kafka = new Kafka("localhost:9092");
-$kafka->produce("topic_name", "message content");
-$kafka->consume("topic_name", 1172556);
+$kafka->set_topic("topic_name");
+$kafka->produce("message content");
+```
+
+```php
+// Consume a message
+$kafka = new Kafka("localhost:9092");
+$kafka->set_topic("topic_name");
+$msg = $kafka->consume(10,10);
+print_r($msg);
 ```
