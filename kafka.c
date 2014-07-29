@@ -201,7 +201,7 @@ static rd_kafka_message_t *msg_consume(rd_kafka_message_t *rkmessage, void *opaq
              rkmessage->partition, rkmessage->offset);
       if (conf.exit_eof)
         conf.run = 0;
-      return;
+      return NULL;
     }
 
     openlog("phpkafka", 0, LOG_USER);
@@ -211,7 +211,7 @@ static rd_kafka_message_t *msg_consume(rd_kafka_message_t *rkmessage, void *opaq
            rkmessage->partition,
            rkmessage->offset,
            rd_kafka_message_errstr(rkmessage));
-    return;
+    return NULL;
   }
 
   return rkmessage;
